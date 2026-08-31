@@ -1,7 +1,8 @@
 /* Arellanes Conde Esteban
-   CGeIHC - Grupo: 05
+   CGeIHC (L+) - Grupo: 05
    26/08/2027-1 
    Altas y Bajas
+   FI UNAM Grupo1
 */
 
 #include<iostream>
@@ -13,9 +14,9 @@
 #include <GLFW/glfw3.h>
 
 // Modificación para habilitar el uso de la GPU dedicada de mi equipo
-extern "C" {
-	__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
-}
+//extern "C" {
+//	__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+//}
 
 // Shaders
 #include "Shader.h"
@@ -28,11 +29,11 @@ const GLint WIDTH = 800, HEIGHT = 600;
 int main() {
 	glfwInit();
 	//Verificaci�n de compatibilidad 
-	/*glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);*/
+	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
 	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "Dibujo de Primitivas en 2D", NULL, NULL);
 	glfwSetFramebufferSizeCallback(window, resize);
@@ -122,7 +123,7 @@ int main() {
 
 		// Render
 		// Clear the colorbuffer
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClearColor(0.2f, 0.3f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
