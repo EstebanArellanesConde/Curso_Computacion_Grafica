@@ -1,7 +1,8 @@
 /* Arellanes Conde Esteban
-   CGeIHC - Grupo: 05
-   24/08/2027-1 
+   CGeIHC (L+) - Grupo: 05
+   26/08/2027-1 
    Altas y Bajas
+   FI UNAM Grupo1
 */
 
 #include<iostream>
