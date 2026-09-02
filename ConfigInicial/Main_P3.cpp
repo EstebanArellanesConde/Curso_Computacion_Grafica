@@ -749,7 +749,7 @@ int main()
 
     glDeleteVertexArrays(
         1,
-        &glVertexAttribPointer
+        &VAO
     );
 
     glDeleteBuffers(
