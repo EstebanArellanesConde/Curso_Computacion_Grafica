@@ -26,7 +26,7 @@
     <None Include="Shader\core.vs" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main_Modelado.cpp" />
+    <ClCompile Include="Modelado_Jerarquico.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
@@ -104,7 +104,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/GLFW/lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLFW/lib-vc2015;$(SolutionDir)..\External Libraries\GLEW\lib;C:\Users\est3b\Downloads\External Libraries\External Libraries\GLEW\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -125,7 +125,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/GLFW/lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/GLFW/lib-vc2015;$(SolutionDir)..\External Libraries\GLEW\lib;C:\Users\est3b\Documents\GitHub\Curso_Computacion_Grafica\External Libraries\GLEW\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -144,7 +144,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/GLFW/lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/GLFW/lib-vc2015;$(SolutionDir)..\External Libraries\GLEW\lib;C:\Users\est3b\Documents\GitHub\Curso_Computacion_Grafica\External Libraries\GLEW\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -165,7 +165,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/GLFW/lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/GLFW/lib-vc2015;$(SolutionDir)..\External Libraries\GLEW\lib;C:\Users\est3b\Documents\GitHub\Curso_Computacion_Grafica\External Libraries\GLEW\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
