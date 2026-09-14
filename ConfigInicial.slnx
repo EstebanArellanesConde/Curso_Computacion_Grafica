@@ -1,6 +1,5 @@
 <Solution>
   <Configurations>
-    <Platform Name="Win32" />
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
