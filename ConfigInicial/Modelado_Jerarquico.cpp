@@ -1,17 +1,37 @@
-// ============================================================
-// BRAZO ROBOTICO - MODELO JERARQUICO
-// Computacion Grafica / CGeIHC
-//
-// CORRECCION:
-// - Los 4 dedos principales cierran como GARARRA.
-// - La flexion de los 4 dedos se realiza sobre el eje Y.
-// - El pulgar tiene movimiento independiente.
-// - Las mismas teclas controlan las falanges equivalentes
-//   de los 4 dedos principales.
-// ============================================================
+/*
+    Autor: Arellanes Conde Esteban
+    Práctica #04
+    CGeIHC (L+) - Grupo: 05
+    #cta: 319322743
+    Fecha: 14/09/2026
+
+    BRAZO ROBÓTICO
+
+    Características:
+    - Modelado jerárquico
+    - Matrices temporales
+    - Restricciones articulares
+    - Brazo completo
+    - Mano de 5 dedos
+    - 4 dedos con 3 falanges (movimiento sincronizado, cierran hacia el frente)
+    - Pulgar con 2 falanges (control independiente)
+
+    CONTROLES
+    ---------------------------------------------
+    Escena:   A/D = X   UP/DOWN = Y   W/S = Z   LEFT/RIGHT = rotar
+    Hombro:   R / F
+    Codo:     G / T
+    Muñeca:   H / Y
+    4 dedos:  Falange 1: J (cerrar) / U (abrir)
+              Falange 2: I (cerrar) / K (abrir)
+              Falange 3: O (cerrar) / L (abrir)
+    Pulgar:   Falange 1: Z (cerrar) / X (abrir)
+              Falange 2: C (cerrar) / V (abrir)
+    ESC = salir
+*/
+
 
 #include <iostream>
-#include <cmath>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -22,113 +42,50 @@
 
 #include "Shader.h"
 
+
 // ============================================================
 // PROTOTIPOS
 // ============================================================
 
-void processInput(GLFWwindow* window);
+void Inputs(GLFWwindow* window);
+
+float ClampAngle(float value, float minValue, float maxValue);
 
 void DrawCube(
     Shader& shader,
-    const glm::mat4& parentMatrix,
-    const glm::vec3& translation,
-    const glm::vec3& scale,
+    GLuint VAO,
+    GLint modelLoc,
+    GLint colorLoc,
+    const glm::mat4& model,
     const glm::vec3& color
 );
 
 void DrawFinger(
     Shader& shader,
-    const glm::mat4& palmMatrix,
-    float baseY,
-    float baseZ,
-    float angle1,
-    float angle2,
-    float angle3,
-    const glm::vec3& color1,
-    const glm::vec3& color2,
-    const glm::vec3& color3
+    GLuint VAO,
+    GLint modelLoc,
+    GLint colorLoc,
+    const glm::mat4& baseMatrix,
+    const glm::vec3& baseOffset,
+    const glm::vec3& axis,
+    int numPhalanges,
+    const float angles[],
+    const float lengths[],
+    const float thickness[],
+    const glm::vec3 colors[]
 );
 
-void DrawThumb(
-    Shader& shader,
-    const glm::mat4& palmMatrix,
-    float angle1,
-    float angle2,
-    float angle3
-);
-
-float ClampAngle(float value, float minValue, float maxValue);
 
 // ============================================================
-// CONSTANTES
+// CONFIGURACIÓN DE LA VENTANA
 // ============================================================
 
-const unsigned int SCR_WIDTH = 1200;
-const unsigned int SCR_HEIGHT = 800;
+const GLint WIDTH = 1200;
+const GLint HEIGHT = 800;
+
 
 // ============================================================
-// GEOMETRIA DEL CUBO
-// ============================================================
-
-float vertices[] = {
-
-    // Cara trasera
-    -0.5f, -0.5f, -0.5f,
-     0.5f, -0.5f, -0.5f,
-     0.5f,  0.5f, -0.5f,
-
-     0.5f,  0.5f, -0.5f,
-    -0.5f,  0.5f, -0.5f,
-    -0.5f, -0.5f, -0.5f,
-
-    // Cara frontal
-    -0.5f, -0.5f,  0.5f,
-     0.5f, -0.5f,  0.5f,
-     0.5f,  0.5f,  0.5f,
-
-     0.5f,  0.5f,  0.5f,
-    -0.5f,  0.5f,  0.5f,
-    -0.5f, -0.5f,  0.5f,
-
-    // Cara izquierda
-    -0.5f,  0.5f,  0.5f,
-    -0.5f,  0.5f, -0.5f,
-    -0.5f, -0.5f, -0.5f,
-
-    -0.5f, -0.5f, -0.5f,
-    -0.5f, -0.5f,  0.5f,
-    -0.5f,  0.5f,  0.5f,
-
-    // Cara derecha
-     0.5f,  0.5f,  0.5f,
-     0.5f,  0.5f, -0.5f,
-     0.5f, -0.5f, -0.5f,
-
-     0.5f, -0.5f, -0.5f,
-     0.5f, -0.5f,  0.5f,
-     0.5f,  0.5f,  0.5f,
-
-     // Cara inferior
-     -0.5f, -0.5f, -0.5f,
-      0.5f, -0.5f, -0.5f,
-      0.5f, -0.5f,  0.5f,
-
-      0.5f, -0.5f,  0.5f,
-     -0.5f, -0.5f,  0.5f,
-     -0.5f, -0.5f, -0.5f,
-
-     // Cara superior
-     -0.5f,  0.5f, -0.5f,
-      0.5f,  0.5f, -0.5f,
-      0.5f,  0.5f,  0.5f,
-
-      0.5f,  0.5f,  0.5f,
-     -0.5f,  0.5f,  0.5f,
-     -0.5f,  0.5f, -0.5f
-};
-
-// ============================================================
-// MOVIMIENTO DEL BRAZO
+// MOVIMIENTO DE LA ESCENA
 // ============================================================
 
 float movX = 0.0f;
@@ -136,6 +93,7 @@ float movY = 0.0f;
 float movZ = -11.0f;
 
 float rot = 0.0f;
+
 
 // ============================================================
 // ARTICULACIONES DEL BRAZO
@@ -145,33 +103,45 @@ float hombro = 0.0f;
 float codo = 35.0f;
 float muneca = 0.0f;
 
+
 // ============================================================
-// ARTICULACIONES DE LOS CUATRO DEDOS PRINCIPALES
+// ARTICULACIONES DE LOS 4 DEDOS (índice, medio, anular, meñique)
 //
-// Una variable representa la misma articulacion para:
-// indice + medio + anular + menique.
-//
-// falange1 -> articulacion base
-// falange2 -> articulacion media
-// falange3 -> articulacion distal
+// Estos tres valores controlan las falanges correspondientes
+// de los cuatro dedos al mismo tiempo.
 // ============================================================
 
 float falange1 = 0.0f;
 float falange2 = 0.0f;
 float falange3 = 0.0f;
 
+
 // ============================================================
-// ARTICULACIONES DEL PULGAR
-//
-// Son independientes de los otros cuatro dedos.
+// ARTICULACIONES DEL PULGAR (INDEPENDIENTE, SOLO 2 FALANGES)
 // ============================================================
 
 float pulgar1 = 0.0f;
 float pulgar2 = 0.0f;
-float pulgar3 = 0.0f;
+
 
 // ============================================================
-// LIMITES DEL BRAZO
+// EJES DE FLEXIÓN
+//
+// Los 4 dedos largos cierran hacia el frente (+Z):
+//   una rotación positiva sobre +Y lleva +X hacia -Z,
+//   por eso se usa -Y para cerrar hacia +Z.
+//   (Si cerraran hacia atrás, cambiar a (0, 1, 0)).
+//
+// El pulgar está del lado +Y y cierra cruzando la palma hacia -Y
+// (hacia los demás dedos): eje -Z.
+// ============================================================
+
+const glm::vec3 EJE_DEDOS(0.0f, -1.0f, 0.0f);
+const glm::vec3 EJE_PULGAR(0.0f, 0.0f, -1.0f);
+
+
+// ============================================================
+// RESTRICCIONES DEL BRAZO
 // ============================================================
 
 const float HOMBRO_MIN = -90.0f;
@@ -183,47 +153,46 @@ const float CODO_MAX = 135.0f;
 const float MUNECA_MIN = -70.0f;
 const float MUNECA_MAX = 70.0f;
 
+
 // ============================================================
-// LIMITES DE LOS CUATRO DEDOS
-//
-// Se reducen los limites para evitar que atraviesen la palma.
+// RESTRICCIONES DE LOS 4 DEDOS
 // ============================================================
 
 const float FALANGE1_MIN = 0.0f;
-const float FALANGE1_MAX = 75.0f;
+const float FALANGE1_MAX = 90.0f;
 
 const float FALANGE2_MIN = 0.0f;
-const float FALANGE2_MAX = 85.0f;
+const float FALANGE2_MAX = 100.0f;
 
 const float FALANGE3_MIN = 0.0f;
-const float FALANGE3_MAX = 70.0f;
+const float FALANGE3_MAX = 90.0f;
+
 
 // ============================================================
-// LIMITES DEL PULGAR
+// RESTRICCIONES DEL PULGAR
 // ============================================================
 
-const float PULGAR1_MIN = -20.0f;
-const float PULGAR1_MAX = 65.0f;
+const float PULGAR1_MIN = 0.0f;
+const float PULGAR1_MAX = 80.0f;
 
 const float PULGAR2_MIN = 0.0f;
-const float PULGAR2_MAX = 75.0f;
+const float PULGAR2_MAX = 90.0f;
 
-const float PULGAR3_MIN = 0.0f;
-const float PULGAR3_MAX = 70.0f;
 
 // ============================================================
-// FACTORES MECANICOS
-//
-// La articulacion siguiente se mueve ligeramente menos.
-// Esto hace que la mano tenga una forma mas natural de garra.
+// RELACIÓN MECÁNICA DE LAS FALANGES
 // ============================================================
 
 const float FALANGE1_FACTOR = 1.00f;
 const float FALANGE2_FACTOR = 0.80f;
 const float FALANGE3_FACTOR = 0.60f;
 
+const float PULGAR1_FACTOR = 1.00f;
+const float PULGAR2_FACTOR = 0.80f;
+
+
 // ============================================================
-// FUNCION PARA LIMITAR ANGULOS
+// FUNCIÓN CLAMP
 // ============================================================
 
 float ClampAngle(float value, float minValue, float maxValue)
@@ -231,659 +200,85 @@ float ClampAngle(float value, float minValue, float maxValue)
     return glm::clamp(value, minValue, maxValue);
 }
 
+
 // ============================================================
-// DIBUJAR CUBO
+// FUNCIÓN PARA DIBUJAR CUBOS
 // ============================================================
 
 void DrawCube(
     Shader& shader,
-    const glm::mat4& parentMatrix,
-    const glm::vec3& translation,
-    const glm::vec3& scale,
+    GLuint VAO,
+    GLint modelLoc,
+    GLint colorLoc,
+    const glm::mat4& model,
     const glm::vec3& color
 )
 {
-    glm::mat4 model = parentMatrix;
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform3fv(colorLoc, 1, glm::value_ptr(color));
 
-    model = glm::translate(
-        model,
-        translation
-    );
-
-    model = glm::scale(
-        model,
-        scale
-    );
-
-    GLint modelLoc =
-        glGetUniformLocation(
-            shader.Program,
-            "model"
-        );
-
-    GLint colorLoc =
-        glGetUniformLocation(
-            shader.Program,
-            "objectColor"
-        );
-
-    glUniformMatrix4fv(
-        modelLoc,
-        1,
-        GL_FALSE,
-        glm::value_ptr(model)
-    );
-
-    glUniform3fv(
-        colorLoc,
-        1,
-        glm::value_ptr(color)
-    );
-
-    glDrawArrays(
-        GL_TRIANGLES,
-        0,
-        36
-    );
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
 }
 
+
 // ============================================================
-// DIBUJAR UNO DE LOS CUATRO DEDOS PRINCIPALES
+// FUNCIÓN PARA DIBUJAR UN DEDO (CADENA JERÁRQUICA DE FALANGES)
 //
-// IMPORTANTE:
-//
-// Los segmentos de los dedos avanzan inicialmente sobre +X.
-//
-// Para cerrar como GARRA:
-//
-//       dedo
-//        |
-//        |------ F1
-//        |       \
-//        |        \ F2
-//        |         \
-//        |          \ F3
-//        |
-//      PALMA
-//
-// La rotacion de cada falange se realiza sobre Y.
-//
-// Esto hace que el dedo se curve hacia la palma en profundidad,
-// en lugar de abrirse lateralmente como unas tijeras.
+// Cada falange:
+//   1) rota sobre su articulación (la rotación se hereda a las siguientes)
+//   2) se dibuja centrada a media longitud
+//   3) la articulación se desplaza al final de la falange
 // ============================================================
 
 void DrawFinger(
     Shader& shader,
-    const glm::mat4& palmMatrix,
-    float baseY,
-    float baseZ,
-    float angle1,
-    float angle2,
-    float angle3,
-    const glm::vec3& color1,
-    const glm::vec3& color2,
-    const glm::vec3& color3
+    GLuint VAO,
+    GLint modelLoc,
+    GLint colorLoc,
+    const glm::mat4& baseMatrix,
+    const glm::vec3& baseOffset,
+    const glm::vec3& axis,
+    int numPhalanges,
+    const float angles[],
+    const float lengths[],
+    const float thickness[],
+    const glm::vec3 colors[]
 )
 {
-    // --------------------------------------------------------
-    // Dimensiones
-    // --------------------------------------------------------
+    glm::mat4 joint = glm::translate(baseMatrix, baseOffset);
 
-    const float L1 = 0.85f;
-    const float L2 = 0.72f;
-    const float L3 = 0.58f;
-
-    const float W1 = 0.34f;
-    const float W2 = 0.30f;
-    const float W3 = 0.27f;
-
-    const float D = 0.42f;
-
-    // --------------------------------------------------------
-    // MATRIZ TEMPORAL DE LA BASE DEL DEDO
-    // --------------------------------------------------------
-
-    glm::mat4 fingerBase = palmMatrix;
-
-    fingerBase = glm::translate(
-        fingerBase,
-        glm::vec3(
-            0.78f,
-            baseY,
-            baseZ
-        )
-    );
-
-    // ========================================================
-    // FALANGE 1
-    // ========================================================
-
-    glm::mat4 falange1Matrix = fingerBase;
-
-    // Rotacion sobre Y:
-    // Esto produce la flexion hacia la palma.
-    falange1Matrix = glm::rotate(
-        falange1Matrix,
-        glm::radians(-angle1),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
-    // Dibujar segmento centrado en su propio eje
-    DrawCube(
-        shader,
-        falange1Matrix,
-        glm::vec3(L1 * 0.5f, 0.0f, 0.0f),
-        glm::vec3(L1, W1, D),
-        color1
-    );
-
-    // ========================================================
-    // ARTICULACION 2
-    // ========================================================
-
-    glm::mat4 falange2Matrix = falange1Matrix;
-
-    // Avanzar hasta el final de la falange 1
-    falange2Matrix = glm::translate(
-        falange2Matrix,
-        glm::vec3(L1, 0.0f, 0.0f)
-    );
-
-    // Rotacion LOCAL sobre Y
-    falange2Matrix = glm::rotate(
-        falange2Matrix,
-        glm::radians(
-            -angle2 * FALANGE2_FACTOR
-        ),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
-    // ========================================================
-    // FALANGE 2
-    // ========================================================
-
-    DrawCube(
-        shader,
-        falange2Matrix,
-        glm::vec3(L2 * 0.5f, 0.0f, 0.0f),
-        glm::vec3(L2, W2, D * 0.92f),
-        color2
-    );
-
-    // ========================================================
-    // ARTICULACION 3
-    // ========================================================
-
-    glm::mat4 falange3Matrix = falange2Matrix;
-
-    falange3Matrix = glm::translate(
-        falange3Matrix,
-        glm::vec3(L2, 0.0f, 0.0f)
-    );
-
-    // Segunda flexion LOCAL sobre Y
-    falange3Matrix = glm::rotate(
-        falange3Matrix,
-        glm::radians(
-            -angle3 * FALANGE3_FACTOR
-        ),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
-    // ========================================================
-    // FALANGE 3
-    // ========================================================
-
-    DrawCube(
-        shader,
-        falange3Matrix,
-        glm::vec3(L3 * 0.5f, 0.0f, 0.0f),
-        glm::vec3(L3, W3, D * 0.84f),
-        color3
-    );
-}
-
-// ============================================================
-// PULGAR
-//
-// El pulgar permanece separado de las articulaciones
-// sincronizadas de los otros cuatro dedos.
-//
-// Su orientacion inicial sale lateralmente de la palma.
-// ============================================================
-
-void DrawThumb(
-    Shader& shader,
-    const glm::mat4& palmMatrix,
-    float angle1,
-    float angle2,
-    float angle3
-)
-{
-    const float L1 = 0.70f;
-    const float L2 = 0.58f;
-    const float L3 = 0.48f;
-
-    const float W1 = 0.42f;
-    const float W2 = 0.36f;
-    const float W3 = 0.32f;
-
-    const float D = 0.48f;
-
-    // ========================================================
-    // BASE DEL PULGAR
-    // ========================================================
-
-    glm::mat4 thumbBase = palmMatrix;
-
-    thumbBase = glm::translate(
-        thumbBase,
-        glm::vec3(
-            0.55f,
-            -1.55f,
-            0.0f
-        )
-    );
-
-    // Orientacion inicial del pulgar.
-    //
-    // A diferencia de los cuatro dedos principales,
-    // el pulgar comienza apuntando lateralmente.
-    thumbBase = glm::rotate(
-        thumbBase,
-        glm::radians(-35.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f)
-    );
-
-    // ========================================================
-    // FALANGE 1 DEL PULGAR
-    // ========================================================
-
-    glm::mat4 thumb1Matrix = thumbBase;
-
-    thumb1Matrix = glm::rotate(
-        thumb1Matrix,
-        glm::radians(-angle1),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
-    DrawCube(
-        shader,
-        thumb1Matrix,
-        glm::vec3(L1 * 0.5f, 0.0f, 0.0f),
-        glm::vec3(L1, W1, D),
-        glm::vec3(0.05f, 0.45f, 0.85f)
-    );
-
-    // ========================================================
-    // FALANGE 2 DEL PULGAR
-    // ========================================================
-
-    glm::mat4 thumb2Matrix = thumb1Matrix;
-
-    thumb2Matrix = glm::translate(
-        thumb2Matrix,
-        glm::vec3(L1, 0.0f, 0.0f)
-    );
-
-    thumb2Matrix = glm::rotate(
-        thumb2Matrix,
-        glm::radians(-angle2),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
-    DrawCube(
-        shader,
-        thumb2Matrix,
-        glm::vec3(L2 * 0.5f, 0.0f, 0.0f),
-        glm::vec3(L2, W2, D * 0.92f),
-        glm::vec3(0.03f, 0.35f, 0.75f)
-    );
-
-    // ========================================================
-    // FALANGE 3 DEL PULGAR
-    // ========================================================
-
-    glm::mat4 thumb3Matrix = thumb2Matrix;
-
-    thumb3Matrix = glm::translate(
-        thumb3Matrix,
-        glm::vec3(L2, 0.0f, 0.0f)
-    );
-
-    thumb3Matrix = glm::rotate(
-        thumb3Matrix,
-        glm::radians(-angle3),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
-    DrawCube(
-        shader,
-        thumb3Matrix,
-        glm::vec3(L3 * 0.5f, 0.0f, 0.0f),
-        glm::vec3(L3, W3, D * 0.84f),
-        glm::vec3(0.08f, 0.25f, 0.65f)
-    );
-}
-
-// ============================================================
-// ENTRADA DE TECLADO
-// ============================================================
-
-void processInput(GLFWwindow* window)
-{
-    // ========================================================
-    // SALIR
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    for (int i = 0; i < numPhalanges; i++)
     {
-        glfwSetWindowShouldClose(
-            window,
-            true
+        // Articulación
+        joint = glm::rotate(
+            joint,
+            glm::radians(angles[i]),
+            axis
         );
-    }
 
-    // ========================================================
-    // MOVIMIENTO X
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    {
-        movX -= 0.05f;
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
-        movX += 0.05f;
-    }
-
-    // ========================================================
-    // MOVIMIENTO Y
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-    {
-        movY += 0.05f;
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    {
-        movY -= 0.05f;
-    }
-
-    // ========================================================
-    // MOVIMIENTO Z
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    {
-        movZ += 0.05f;
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    {
-        movZ -= 0.05f;
-    }
-
-    // ========================================================
-    // ROTACION GENERAL
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    {
-        rot -= 1.0f;
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-    {
-        rot += 1.0f;
-    }
-
-    // ========================================================
-    // HOMBRO
-    // R / F
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-    {
-        hombro += 1.0f;
-
-        hombro = ClampAngle(
-            hombro,
-            HOMBRO_MIN,
-            HOMBRO_MAX
+        // Hueso (matriz temporal, no se hereda)
+        glm::mat4 bone = glm::translate(
+            joint,
+            glm::vec3(lengths[i] * 0.5f, 0.0f, 0.0f)
         );
-    }
 
-    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-    {
-        hombro -= 1.0f;
-
-        hombro = ClampAngle(
-            hombro,
-            HOMBRO_MIN,
-            HOMBRO_MAX
+        bone = glm::scale(
+            bone,
+            glm::vec3(lengths[i], thickness[i], thickness[i])
         );
-    }
 
-    // ========================================================
-    // CODO
-    // G / T
-    // ========================================================
+        DrawCube(shader, VAO, modelLoc, colorLoc, bone, colors[i]);
 
-    if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
-    {
-        codo += 1.0f;
-
-        codo = ClampAngle(
-            codo,
-            CODO_MIN,
-            CODO_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
-    {
-        codo -= 1.0f;
-
-        codo = ClampAngle(
-            codo,
-            CODO_MIN,
-            CODO_MAX
-        );
-    }
-
-    // ========================================================
-    // MUÑECA
-    // H / Y
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
-    {
-        muneca += 1.0f;
-
-        muneca = ClampAngle(
-            muneca,
-            MUNECA_MIN,
-            MUNECA_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS)
-    {
-        muneca -= 1.0f;
-
-        muneca = ClampAngle(
-            muneca,
-            MUNECA_MIN,
-            MUNECA_MAX
-        );
-    }
-
-    // ========================================================
-    // FALANGE 1 DE LOS 4 DEDOS
-    //
-    // J = cerrar
-    // U = abrir
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-    {
-        falange1 += 1.0f;
-
-        falange1 = ClampAngle(
-            falange1,
-            FALANGE1_MIN,
-            FALANGE1_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-    {
-        falange1 -= 1.0f;
-
-        falange1 = ClampAngle(
-            falange1,
-            FALANGE1_MIN,
-            FALANGE1_MAX
-        );
-    }
-
-    // ========================================================
-    // FALANGE 2 DE LOS 4 DEDOS
-    //
-    // O = cerrar
-    // L = abrir
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-    {
-        falange2 += 1.0f;
-
-        falange2 = ClampAngle(
-            falange2,
-            FALANGE2_MIN,
-            FALANGE2_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-    {
-        falange2 -= 1.0f;
-
-        falange2 = ClampAngle(
-            falange2,
-            FALANGE2_MIN,
-            FALANGE2_MAX
-        );
-    }
-
-    // ========================================================
-    // FALANGE 3 DE LOS 4 DEDOS
-    //
-    // P = cerrar
-    // ; = abrir
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-    {
-        falange3 += 1.0f;
-
-        falange3 = ClampAngle(
-            falange3,
-            FALANGE3_MIN,
-            FALANGE3_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_SEMICOLON) == GLFW_PRESS)
-    {
-        falange3 -= 1.0f;
-
-        falange3 = ClampAngle(
-            falange3,
-            FALANGE3_MIN,
-            FALANGE3_MAX
-        );
-    }
-
-    // ========================================================
-    // PULGAR
-    //
-    // Z / X -> primera falange
-    // C / V -> segunda falange
-    // B / N -> tercera falange
-    //
-    // Estas teclas NO afectan los otros cuatro dedos.
-    // ========================================================
-
-    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
-    {
-        pulgar1 += 1.0f;
-
-        pulgar1 = ClampAngle(
-            pulgar1,
-            PULGAR1_MIN,
-            PULGAR1_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
-    {
-        pulgar1 -= 1.0f;
-
-        pulgar1 = ClampAngle(
-            pulgar1,
-            PULGAR1_MIN,
-            PULGAR1_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
-    {
-        pulgar2 += 1.0f;
-
-        pulgar2 = ClampAngle(
-            pulgar2,
-            PULGAR2_MIN,
-            PULGAR2_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)
-    {
-        pulgar2 -= 1.0f;
-
-        pulgar2 = ClampAngle(
-            pulgar2,
-            PULGAR2_MIN,
-            PULGAR2_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
-    {
-        pulgar3 += 1.0f;
-
-        pulgar3 = ClampAngle(
-            pulgar3,
-            PULGAR3_MIN,
-            PULGAR3_MAX
-        );
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
-    {
-        pulgar3 -= 1.0f;
-
-        pulgar3 = ClampAngle(
-            pulgar3,
-            PULGAR3_MIN,
-            PULGAR3_MAX
+        // Siguiente articulación
+        joint = glm::translate(
+            joint,
+            glm::vec3(lengths[i], 0.0f, 0.0f)
         );
     }
 }
+
 
 // ============================================================
 // MAIN
@@ -892,82 +287,73 @@ void processInput(GLFWwindow* window)
 int main()
 {
     // ========================================================
-    // INICIALIZAR GLFW
+    // GLFW
     // ========================================================
 
-    glfwInit();
-
-    glfwWindowHint(
-        GLFW_CONTEXT_VERSION_MAJOR,
-        3
-    );
-
-    glfwWindowHint(
-        GLFW_CONTEXT_VERSION_MINOR,
-        3
-    );
-
-    glfwWindowHint(
-        GLFW_OPENGL_PROFILE,
-        GLFW_OPENGL_CORE_PROFILE
-    );
-
-    // ========================================================
-    // CREAR VENTANA
-    // ========================================================
-
-    GLFWwindow* window = glfwCreateWindow(
-        SCR_WIDTH,
-        SCR_HEIGHT,
-        "Brazo Robotico - Modelo Jerarquico",
-        NULL,
-        NULL
-    );
-
-    if (window == NULL)
+    if (!glfwInit())
     {
-        std::cout
-            << "Error al crear la ventana"
-            << std::endl;
+        std::cout << "Failed to initialize GLFW" << std::endl;
+        return EXIT_FAILURE;
+    }
 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+
+    GLFWwindow* window =
+        glfwCreateWindow(
+            WIDTH,
+            HEIGHT,
+            "Brazo Robotico - Esteban Arellanes Conde",
+            nullptr,
+            nullptr
+        );
+
+    if (window == nullptr)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
-
-        return -1;
+        return EXIT_FAILURE;
     }
 
     glfwMakeContextCurrent(window);
 
+
     // ========================================================
-    // INICIALIZAR GLEW
+    // GLEW
     // ========================================================
 
     glewExperimental = GL_TRUE;
 
-    if (glewInit() != GLEW_OK)
+    if (GLEW_OK != glewInit())
     {
-        std::cout
-            << "Error al inicializar GLEW"
-            << std::endl;
-
-        return -1;
+        std::cout << "Failed to initialize GLEW" << std::endl;
+        glfwTerminate();
+        return EXIT_FAILURE;
     }
+
 
     // ========================================================
     // VIEWPORT
     // ========================================================
 
-    glViewport(
-        0,
-        0,
-        SCR_WIDTH,
-        SCR_HEIGHT
-    );
+    int screenWidth;
+    int screenHeight;
+
+    glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
+    glViewport(0, 0, screenWidth, screenHeight);
+
 
     // ========================================================
-    // DEPTH TEST
+    // OPENGL
     // ========================================================
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
     // ========================================================
     // SHADER
@@ -978,171 +364,224 @@ int main()
         "Shader/core.frag"
     );
 
+
+    // ========================================================
+    // CUBO
+    // ========================================================
+
+    float vertices[] =
+    {
+        // Frente
+        -0.5f, -0.5f,  0.5f,
+         0.5f, -0.5f,  0.5f,
+         0.5f,  0.5f,  0.5f,
+
+         0.5f,  0.5f,  0.5f,
+        -0.5f,  0.5f,  0.5f,
+        -0.5f, -0.5f,  0.5f,
+
+        // Atrás
+        -0.5f, -0.5f, -0.5f,
+         0.5f, -0.5f, -0.5f,
+         0.5f,  0.5f, -0.5f,
+
+         0.5f,  0.5f, -0.5f,
+        -0.5f,  0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+
+        // Derecha
+         0.5f, -0.5f,  0.5f,
+         0.5f, -0.5f, -0.5f,
+         0.5f,  0.5f, -0.5f,
+
+         0.5f,  0.5f, -0.5f,
+         0.5f,  0.5f,  0.5f,
+         0.5f, -0.5f,  0.5f,
+
+         // Izquierda
+         -0.5f,  0.5f,  0.5f,
+         -0.5f,  0.5f, -0.5f,
+         -0.5f, -0.5f, -0.5f,
+
+         -0.5f, -0.5f, -0.5f,
+         -0.5f, -0.5f,  0.5f,
+         -0.5f,  0.5f,  0.5f,
+
+         // Abajo
+         -0.5f, -0.5f, -0.5f,
+          0.5f, -0.5f, -0.5f,
+          0.5f, -0.5f,  0.5f,
+
+          0.5f, -0.5f,  0.5f,
+         -0.5f, -0.5f,  0.5f,
+         -0.5f, -0.5f, -0.5f,
+
+         // Arriba
+         -0.5f,  0.5f, -0.5f,
+          0.5f,  0.5f, -0.5f,
+          0.5f,  0.5f,  0.5f,
+
+          0.5f,  0.5f,  0.5f,
+         -0.5f,  0.5f,  0.5f,
+         -0.5f,  0.5f, -0.5f
+    };
+
+
     // ========================================================
     // VAO / VBO
     // ========================================================
 
-    unsigned int VBO;
-    unsigned int VAO;
+    GLuint VAO;
+    GLuint VBO;
 
-    glGenVertexArrays(
-        1,
-        &VAO
-    );
-
-    glGenBuffers(
-        1,
-        &VBO
-    );
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
 
     glBindVertexArray(VAO);
 
-    glBindBuffer(
-        GL_ARRAY_BUFFER,
-        VBO
-    );
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        sizeof(vertices),
-        vertices,
-        GL_STATIC_DRAW
-    );
-
-    // Posiciones
     glVertexAttribPointer(
         0,
         3,
         GL_FLOAT,
         GL_FALSE,
-        3 * sizeof(float),
-        (void*)0
+        3 * sizeof(GLfloat),
+        (GLvoid*)0
     );
 
     glEnableVertexAttribArray(0);
 
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+
     // ========================================================
-    // BUCLE PRINCIPAL
+    // PROYECCIÓN
+    // ========================================================
+
+    glm::mat4 projection =
+        glm::perspective(
+            glm::radians(45.0f),
+            (GLfloat)screenWidth / (GLfloat)screenHeight,
+            0.1f,
+            100.0f
+        );
+
+
+    // ========================================================
+    // UNIFORMS
+    // ========================================================
+
+    GLint modelLoc = glGetUniformLocation(ourShader.Program, "model");
+    GLint viewLoc = glGetUniformLocation(ourShader.Program, "view");
+    GLint projectionLoc = glGetUniformLocation(ourShader.Program, "projection");
+    GLint colorLoc = ourShader.uniformColor;
+
+
+    // ========================================================
+    // DATOS DE LOS DEDOS
+    // ========================================================
+
+    // ---------------- PULGAR (2 falanges) -------------------
+    const float pulgarLen[2] = { 0.8f, 0.6f };
+    const float pulgarThick[2] = { 0.40f, 0.35f };
+    const glm::vec3 pulgarColor[2] =
+    {
+        glm::vec3(0.2f, 0.6f, 0.9f),
+        glm::vec3(0.15f, 0.5f, 0.8f)
+    };
+
+    // ---------------- ÍNDICE --------------------------------
+    const float indiceLen[3] = { 0.8f, 0.7f, 0.6f };
+    const float indiceThick[3] = { 0.32f, 0.30f, 0.28f };
+    const glm::vec3 indiceColor[3] =
+    {
+        glm::vec3(0.1f, 0.7f, 0.9f),
+        glm::vec3(0.1f, 0.6f, 0.8f),
+        glm::vec3(0.1f, 0.5f, 0.7f)
+    };
+
+    // ---------------- MEDIO ---------------------------------
+    const float medioLen[3] = { 0.9f, 0.7f, 0.6f };
+    const float medioThick[3] = { 0.34f, 0.30f, 0.28f };
+    const glm::vec3 medioColor[3] =
+    {
+        glm::vec3(0.2f, 0.8f, 0.9f),
+        glm::vec3(0.1f, 0.65f, 0.8f),
+        glm::vec3(0.1f, 0.55f, 0.7f)
+    };
+
+    // ---------------- ANULAR --------------------------------
+    const float anularLen[3] = { 0.8f, 0.7f, 0.6f };
+    const float anularThick[3] = { 0.32f, 0.30f, 0.28f };
+    const glm::vec3 anularColor[3] =
+    {
+        glm::vec3(0.8f, 0.3f, 0.8f),
+        glm::vec3(0.7f, 0.2f, 0.7f),
+        glm::vec3(0.6f, 0.15f, 0.6f)
+    };
+
+    // ---------------- MEÑIQUE -------------------------------
+    const float meniqueLen[3] = { 0.7f, 0.6f, 0.5f };
+    const float meniqueThick[3] = { 0.30f, 0.28f, 0.25f };
+    const glm::vec3 meniqueColor[3] =
+    {
+        glm::vec3(0.9f, 0.3f, 0.7f),
+        glm::vec3(0.8f, 0.2f, 0.6f),
+        glm::vec3(0.7f, 0.15f, 0.5f)
+    };
+
+
+    // ========================================================
+    // LOOP PRINCIPAL
     // ========================================================
 
     while (!glfwWindowShouldClose(window))
     {
-        // ----------------------------------------------------
+        // ====================================================
         // INPUT
-        // ----------------------------------------------------
+        // ====================================================
 
-        processInput(window);
+        Inputs(window);
+        glfwPollEvents();
 
-        // ----------------------------------------------------
+
+        // ====================================================
         // LIMPIAR
-        // ----------------------------------------------------
+        // ====================================================
 
-        glClearColor(
-            0.02f,
-            0.02f,
-            0.02f,
-            1.0f
-        );
+        glClearColor(0.02f, 0.02f, 0.02f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glClear(
-            GL_COLOR_BUFFER_BIT |
-            GL_DEPTH_BUFFER_BIT
-        );
 
-        // ----------------------------------------------------
+        // ====================================================
         // SHADER
-        // ----------------------------------------------------
+        // ====================================================
 
         ourShader.Use();
 
+
         // ====================================================
-        // MATRIZ DE VISTA
+        // MATRIZ VIEW
         // ====================================================
 
         glm::mat4 view = glm::mat4(1.0f);
 
-        view = glm::lookAt(
-            glm::vec3(
-                8.0f,
-                6.0f,
-                12.0f
-            ),
+        view = glm::translate(view, glm::vec3(movX, movY, movZ));
+        view = glm::rotate(view, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 
-            glm::vec3(
-                2.0f,
-                0.0f,
-                0.0f
-            ),
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-            glm::vec3(
-                0.0f,
-                1.0f,
-                0.0f
-            )
-        );
 
         // ====================================================
-        // PROYECCION
+        // MATRIZ RAÍZ
         // ====================================================
 
-        glm::mat4 projection =
-            glm::perspective(
-                glm::radians(45.0f),
-                (float)SCR_WIDTH /
-                (float)SCR_HEIGHT,
-                0.1f,
-                100.0f
-            );
+        glm::mat4 model = glm::mat4(1.0f);
 
-        GLint viewLoc = glGetUniformLocation(
-            ourShader.Program,
-            "view"
-        );
-
-        GLint projectionLoc = glGetUniformLocation(
-            ourShader.Program,
-            "projection"
-        );
-
-        glUniformMatrix4fv(
-            viewLoc,
-            1,
-            GL_FALSE,
-            glm::value_ptr(view)
-        );
-
-        glUniformMatrix4fv(
-            projectionLoc,
-            1,
-            GL_FALSE,
-            glm::value_ptr(projection)
-        );
-
-        // ====================================================
-        // MATRIZ PRINCIPAL DEL BRAZO
-        // ====================================================
-
-        glm::mat4 model =
-            glm::mat4(1.0f);
-
-        model = glm::translate(
-            model,
-            glm::vec3(
-                movX,
-                movY,
-                movZ
-            )
-        );
-
-        model = glm::rotate(
-            model,
-            glm::radians(rot),
-            glm::vec3(
-                0.0f,
-                1.0f,
-                0.0f
-            )
-        );
 
         // ====================================================
         // HOMBRO
@@ -1153,357 +592,283 @@ int main()
         hombroMatrix = glm::rotate(
             hombroMatrix,
             glm::radians(hombro),
-            glm::vec3(
-                0.0f,
-                0.0f,
-                1.0f
-            )
+            glm::vec3(0.0f, 0.0f, 1.0f)
         );
 
+
         // ====================================================
-        // BICEPS
+        // BÍCEPS
         // ====================================================
+
+        glm::mat4 bicepsMatrix = hombroMatrix;
+
+        bicepsMatrix = glm::translate(bicepsMatrix, glm::vec3(1.5f, 0.0f, 0.0f));
+
+        glm::mat4 bicepsModel = bicepsMatrix;
+
+        bicepsModel = glm::scale(bicepsModel, glm::vec3(3.0f, 1.0f, 1.0f));
 
         DrawCube(
-            ourShader,
-            hombroMatrix,
-            glm::vec3(
-                1.5f,
-                0.0f,
-                0.0f
-            ),
-            glm::vec3(
-                3.0f,
-                0.9f,
-                0.9f
-            ),
-            glm::vec3(
-                0.05f,
-                0.80f,
-                0.20f
-            )
+            ourShader, VAO, modelLoc, colorLoc,
+            bicepsModel,
+            glm::vec3(0.1f, 0.8f, 0.2f)
         );
+
 
         // ====================================================
         // CODO
         // ====================================================
 
-        glm::mat4 codoMatrix =
-            hombroMatrix;
+        glm::mat4 codoMatrix = bicepsMatrix;
 
-        codoMatrix = glm::translate(
-            codoMatrix,
-            glm::vec3(
-                3.0f,
-                0.0f,
-                0.0f
-            )
-        );
+        codoMatrix = glm::translate(codoMatrix, glm::vec3(1.5f, 0.0f, 0.0f));
 
         codoMatrix = glm::rotate(
             codoMatrix,
             glm::radians(codo),
-            glm::vec3(
-                0.0f,
-                0.0f,
-                1.0f
-            )
+            glm::vec3(0.0f, 0.0f, 1.0f)
         );
+
 
         // ====================================================
         // ANTEBRAZO
         // ====================================================
 
+        glm::mat4 antebrazoMatrix = codoMatrix;
+
+        antebrazoMatrix = glm::translate(antebrazoMatrix, glm::vec3(1.0f, 0.0f, 0.0f));
+
+        glm::mat4 antebrazoModel = antebrazoMatrix;
+
+        antebrazoModel = glm::scale(antebrazoModel, glm::vec3(2.0f, 1.0f, 1.0f));
+
         DrawCube(
-            ourShader,
-            codoMatrix,
-            glm::vec3(
-                1.0f,
-                0.0f,
-                0.0f
-            ),
-            glm::vec3(
-                2.0f,
-                0.8f,
-                0.8f
-            ),
-            glm::vec3(
-                0.75f,
-                0.75f,
-                0.80f
-            )
+            ourShader, VAO, modelLoc, colorLoc,
+            antebrazoModel,
+            glm::vec3(0.8f, 0.15f, 0.15f)
         );
+
 
         // ====================================================
         // MUÑECA
         // ====================================================
 
-        glm::mat4 munecaMatrix =
-            codoMatrix;
+        glm::mat4 munecaMatrix = antebrazoMatrix;
 
-        munecaMatrix = glm::translate(
-            munecaMatrix,
-            glm::vec3(
-                2.0f,
-                0.0f,
-                0.0f
-            )
-        );
+        munecaMatrix = glm::translate(munecaMatrix, glm::vec3(1.0f, 0.0f, 0.0f));
 
         munecaMatrix = glm::rotate(
             munecaMatrix,
             glm::radians(muneca),
-            glm::vec3(
-                0.0f,
-                0.0f,
-                1.0f
-            )
+            glm::vec3(0.0f, 0.0f, 1.0f)
         );
+
 
         // ====================================================
         // PALMA
         // ====================================================
 
+        glm::mat4 palmaMatrix = munecaMatrix;
+
+        palmaMatrix = glm::translate(palmaMatrix, glm::vec3(0.4f, 0.0f, 0.0f));
+
+        glm::mat4 palmaModel = palmaMatrix;
+
+        palmaModel = glm::scale(palmaModel, glm::vec3(0.8f, 2.2f, 1.0f));
+
         DrawCube(
-            ourShader,
-            munecaMatrix,
-            glm::vec3(
-                0.40f,
-                0.0f,
-                0.0f
-            ),
-            glm::vec3(
-                0.80f,
-                2.20f,
-                1.0f
-            ),
-            glm::vec3(
-                0.70f,
-                0.70f,
-                0.75f
-            )
+            ourShader, VAO, modelLoc, colorLoc,
+            palmaModel,
+            glm::vec3(0.75f, 0.75f, 0.78f)
         );
 
+
         // ====================================================
-        // MATRIZ TEMPORAL DE LA PALMA
-        //
-        // Todas las falanges parten de esta matriz.
+        // PULGAR (2 FALANGES, INDEPENDIENTE)
         // ====================================================
 
-        glm::mat4 palmaMatrix =
-            munecaMatrix;
+        // Base del pulgar: del lado +Y (junto al índice y del mismo lado
+        // hacia donde dobla el codo), ligeramente al frente de la palma
+        // (z = 0.35) para poder cruzarla sin atravesar los otros dedos.
+        glm::mat4 pulgarBase = palmaMatrix;
 
-        palmaMatrix = glm::translate(
-            palmaMatrix,
-            glm::vec3(
-                0.80f,
-                0.0f,
-                0.0f
-            )
+        pulgarBase = glm::translate(pulgarBase, glm::vec3(0.10f, 1.0f, 0.35f));
+
+        pulgarBase = glm::rotate(
+            pulgarBase,
+            glm::radians(35.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f)
         );
 
-        // ====================================================
-        // LOS CUATRO DEDOS PRINCIPALES
-        //
-        // IMPORTANTE:
-        //
-        // Todos reciben:
-        //
-        // falange1
-        // falange2
-        // falange3
-        //
-        // Por lo tanto:
-        //
-        // J/U -> F1 de los cuatro
-        // O/L -> F2 de los cuatro
-        // P/; -> F3 de los cuatro
-        //
-        // Pero cada dedo tiene su propia posicion Y.
-        // ====================================================
-
-        // ----------------------------------------------------
-        // INDICE
-        // ----------------------------------------------------
+        const float pulgarAngles[2] =
+        {
+            pulgar1 * PULGAR1_FACTOR,
+            pulgar2 * PULGAR2_FACTOR
+        };
 
         DrawFinger(
-            ourShader,
-            palmaMatrix,
-            1.35f,
-            0.0f,
-
-            falange1 * FALANGE1_FACTOR,
-            falange2,
-            falange3,
-
-            glm::vec3(
-                0.05f,
-                0.65f,
-                0.90f
-            ),
-
-            glm::vec3(
-                0.02f,
-                0.55f,
-                0.80f
-            ),
-
-            glm::vec3(
-                0.02f,
-                0.45f,
-                0.70f
-            )
+            ourShader, VAO, modelLoc, colorLoc,
+            pulgarBase,
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            EJE_PULGAR,
+            2,
+            pulgarAngles,
+            pulgarLen,
+            pulgarThick,
+            pulgarColor
         );
 
-        // ----------------------------------------------------
+
+        // ====================================================
+        // 4 DEDOS (3 FALANGES, SINCRONIZADOS, CIERRAN AL FRENTE)
+        // ====================================================
+
+        const float dedosAngles[3] =
+        {
+            falange1 * FALANGE1_FACTOR,
+            falange2 * FALANGE2_FACTOR,
+            falange3 * FALANGE3_FACTOR
+        };
+
+        // Los dedos nacen en el borde de la palma (x = 0.4)
+
+        // ÍNDICE
+        DrawFinger(
+            ourShader, VAO, modelLoc, colorLoc,
+            palmaMatrix,
+            glm::vec3(0.4f, 0.80f, 0.0f),
+            EJE_DEDOS, 3,
+            dedosAngles, indiceLen, indiceThick, indiceColor
+        );
+
         // MEDIO
-        // ----------------------------------------------------
-
         DrawFinger(
-            ourShader,
+            ourShader, VAO, modelLoc, colorLoc,
             palmaMatrix,
-            0.45f,
-            0.0f,
-
-            falange1 * FALANGE1_FACTOR,
-            falange2,
-            falange3,
-
-            glm::vec3(
-                0.10f,
-                0.75f,
-                0.95f
-            ),
-
-            glm::vec3(
-                0.05f,
-                0.65f,
-                0.90f
-            ),
-
-            glm::vec3(
-                0.02f,
-                0.55f,
-                0.80f
-            )
+            glm::vec3(0.4f, 0.25f, 0.0f),
+            EJE_DEDOS, 3,
+            dedosAngles, medioLen, medioThick, medioColor
         );
 
-        // ----------------------------------------------------
         // ANULAR
-        // ----------------------------------------------------
-
         DrawFinger(
-            ourShader,
+            ourShader, VAO, modelLoc, colorLoc,
             palmaMatrix,
-            -0.45f,
-            0.0f,
-
-            falange1 * FALANGE1_FACTOR,
-            falange2,
-            falange3,
-
-            glm::vec3(
-                0.85f,
-                0.10f,
-                0.70f
-            ),
-
-            glm::vec3(
-                0.75f,
-                0.05f,
-                0.60f
-            ),
-
-            glm::vec3(
-                0.65f,
-                0.02f,
-                0.50f
-            )
+            glm::vec3(0.4f, -0.30f, 0.0f),
+            EJE_DEDOS, 3,
+            dedosAngles, anularLen, anularThick, anularColor
         );
 
-        // ----------------------------------------------------
         // MEÑIQUE
-        // ----------------------------------------------------
-
         DrawFinger(
-            ourShader,
+            ourShader, VAO, modelLoc, colorLoc,
             palmaMatrix,
-            -1.35f,
-            0.0f,
-
-            falange1 * FALANGE1_FACTOR,
-            falange2,
-            falange3,
-
-            glm::vec3(
-                0.90f,
-                0.10f,
-                0.50f
-            ),
-
-            glm::vec3(
-                0.80f,
-                0.05f,
-                0.45f
-            ),
-
-            glm::vec3(
-                0.70f,
-                0.02f,
-                0.40f
-            )
+            glm::vec3(0.4f, -0.80f, 0.0f),
+            EJE_DEDOS, 3,
+            dedosAngles, meniqueLen, meniqueThick, meniqueColor
         );
 
-        // ====================================================
-        // PULGAR
-        //
-        // SE DIBUJA APARTE.
-        //
-        // NO UTILIZA:
-        //
-        // falange1
-        // falange2
-        // falange3
-        //
-        // Utiliza:
-        //
-        // pulgar1
-        // pulgar2
-        // pulgar3
-        // ====================================================
-
-        DrawThumb(
-            ourShader,
-            munecaMatrix,
-            pulgar1,
-            pulgar2,
-            pulgar3
-        );
 
         // ====================================================
-        // FINAL DEL FRAME
+        // FIN DEL FRAME
         // ====================================================
 
         glfwSwapBuffers(window);
-
-        glfwPollEvents();
     }
+
 
     // ========================================================
     // LIBERAR RECURSOS
     // ========================================================
 
-    glDeleteVertexArrays(
-        1,
-        &VAO
-    );
-
-    glDeleteBuffers(
-        1,
-        &VBO
-    );
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
 
     glfwTerminate();
 
-    return 0;
+    return EXIT_SUCCESS;
+}
+
+
+// ============================================================
+// INPUTS
+// ============================================================
+
+static bool Key(GLFWwindow* window, int key)
+{
+    return glfwGetKey(window, key) == GLFW_PRESS;
+}
+
+void Inputs(GLFWwindow* window)
+{
+    const float VEL_MOV = 0.08f;
+    const float VEL_ANG = 0.18f;
+
+    // ESC
+    if (Key(window, GLFW_KEY_ESCAPE))
+        glfwSetWindowShouldClose(window, true);
+
+
+    // ---------------- MOVIMIENTO DE LA ESCENA ----------------
+
+    if (Key(window, GLFW_KEY_D))    movX += VEL_MOV;
+    if (Key(window, GLFW_KEY_A))    movX -= VEL_MOV;
+
+    if (Key(window, GLFW_KEY_UP))   movY += VEL_MOV;
+    if (Key(window, GLFW_KEY_DOWN)) movY -= VEL_MOV;
+
+    if (Key(window, GLFW_KEY_W))    movZ -= VEL_MOV;
+    if (Key(window, GLFW_KEY_S))    movZ += VEL_MOV;
+
+    if (Key(window, GLFW_KEY_RIGHT)) rot += VEL_ANG;
+    if (Key(window, GLFW_KEY_LEFT))  rot -= VEL_ANG;
+
+
+    // ---------------- BRAZO ----------------------------------
+
+    // Hombro: R / F
+    if (Key(window, GLFW_KEY_R)) hombro += VEL_ANG;
+    if (Key(window, GLFW_KEY_F)) hombro -= VEL_ANG;
+    hombro = ClampAngle(hombro, HOMBRO_MIN, HOMBRO_MAX);
+
+    // Codo: G / T
+    if (Key(window, GLFW_KEY_G)) codo += VEL_ANG;
+    if (Key(window, GLFW_KEY_T)) codo -= VEL_ANG;
+    codo = ClampAngle(codo, CODO_MIN, CODO_MAX);
+
+    // Muñeca: H / Y
+    if (Key(window, GLFW_KEY_H)) muneca += VEL_ANG;
+    if (Key(window, GLFW_KEY_Y)) muneca -= VEL_ANG;
+    muneca = ClampAngle(muneca, MUNECA_MIN, MUNECA_MAX);
+
+
+    // ---------------- 4 DEDOS (sincronizados) ----------------
+
+    // Falange 1: J = cerrar / U = abrir
+    if (Key(window, GLFW_KEY_J)) falange1 += VEL_ANG;
+    if (Key(window, GLFW_KEY_U)) falange1 -= VEL_ANG;
+    falange1 = ClampAngle(falange1, FALANGE1_MIN, FALANGE1_MAX);
+
+    // Falange 2: I = cerrar / K = abrir
+    if (Key(window, GLFW_KEY_I)) falange2 += VEL_ANG;
+    if (Key(window, GLFW_KEY_K)) falange2 -= VEL_ANG;
+    falange2 = ClampAngle(falange2, FALANGE2_MIN, FALANGE2_MAX);
+
+    // Falange 3: O = cerrar / L = abrir
+    if (Key(window, GLFW_KEY_O)) falange3 += VEL_ANG;
+    if (Key(window, GLFW_KEY_L)) falange3 -= VEL_ANG;
+    falange3 = ClampAngle(falange3, FALANGE3_MIN, FALANGE3_MAX);
+
+
+    // ---------------- PULGAR (independiente) -----------------
+
+    // Falange 1: Z = cerrar / X = abrir
+    if (Key(window, GLFW_KEY_Z)) pulgar1 += VEL_ANG;
+    if (Key(window, GLFW_KEY_X)) pulgar1 -= VEL_ANG;
+    pulgar1 = ClampAngle(pulgar1, PULGAR1_MIN, PULGAR1_MAX);
+
+    // Falange 2: C = cerrar / V = abrir
+    if (Key(window, GLFW_KEY_C)) pulgar2 += VEL_ANG;
+    if (Key(window, GLFW_KEY_V)) pulgar2 -= VEL_ANG;
+    pulgar2 = ClampAngle(pulgar2, PULGAR2_MIN, PULGAR2_MAX);
 }
