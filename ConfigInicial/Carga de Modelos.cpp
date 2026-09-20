@@ -1,7 +1,7 @@
 /*
     Autor: Arellanes Conde Esteban
     Práctica #06
-    CGeIHC (L+) - Grupo: 05
+    FI UNAM CGeIHC (L+) - Grupo: 01
     #cta: 319322743
     Fecha: 20/09/2026
 */
