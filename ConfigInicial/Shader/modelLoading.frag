@@ -7,14 +7,14 @@ in vec2 TexCoords;
 uniform sampler2D texture_diffuse1;
 
 /*
-Indicates whether the current mesh has
-a diffuse texture.
+    Indica si el material actual tiene
+    una textura difusa.
 */
 uniform bool hasTexture;
 
 /*
-Diffuse material color obtained from
-the Kd value in the .mtl file.
+    Color Kd del material cuando
+    no existe textura.
 */
 uniform vec3 materialDiffuse;
 
@@ -22,28 +22,26 @@ void main()
 {
     if (hasTexture)
     {
+        vec4 texColor = texture(
+            texture_diffuse1,
+            TexCoords
+        );
+
         /*
-        Textured model.
-        Example:
-        RedDog.obj + Texture_albedo.jpg
+            Evita dibujar texels completamente
+            transparentes si alguna textura
+            contiene canal alpha.
         */
-        FragColor =
-            texture(
-                texture_diffuse1,
-                TexCoords
-            );
+        if (texColor.a < 0.05)
+            discard;
+
+        FragColor = texColor;
     }
     else
     {
-        /*
-        Material-color model.
-        Example:
-        car_project.obj + car_project.mtl
-        */
-        FragColor =
-            vec4(
-                materialDiffuse,
-                1.0
-            );
+        FragColor = vec4(
+            materialDiffuse,
+            1.0
+        );
     }
 }

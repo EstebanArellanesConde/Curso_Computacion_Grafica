@@ -12,7 +12,33 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "SOIL2/SOIL2.h"
+// ============================================================
+// CARGA DE TEXTURAS: stb_image en vez de SOIL2
+// ============================================================
+//
+// SOIL2 es una librería vieja y poco mantenida, con bugs
+// conocidos al decodificar ciertos JPEGs (progresivos, CMYK,
+// etc.) que pueden corromper memoria en vez de fallar limpio.
+// Eso encaja con el crash que aparece solo al usar varios
+// archivos .jpg reales distintos (con un solo archivo repetido
+// el caché de texturas_loaded nunca vuelve a decodificar nada).
+//
+// stb_image es más moderna y maneja mucho mejor esos casos.
+//
+// IMPORTANTE: en exactamente UN .cpp de tu proyecto (usa
+// main.cpp) debe existir, ANTES de incluir stb_image.h:
+//
+//     #define STB_IMAGE_IMPLEMENTATION
+//     #include "stb_image.h"
+//
+// Aquí en Model.h solo se incluye la declaración (sin el
+// #define), porque la implementación ya se compiló una vez
+// en main.cpp. Si el #define se pone en más de un .cpp,
+// obtendrás errores de "symbol already defined" al enlazar.
+//
+// ============================================================
+
+#include "stb_image.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -64,6 +90,16 @@ public:
     }
 
 
+    /*
+    Meshes belonging to the model.
+
+    Público para poder recorrer sus vértices desde main.cpp
+    (por ejemplo, para calcular el bounding box y alinear el
+    modelo al piso).
+    */
+    vector<Mesh> meshes;
+
+
 private:
 
     /*
@@ -71,8 +107,6 @@ private:
     MODEL DATA
     ================================================================
     */
-
-    vector<Mesh> meshes;
 
     string directory;
 
@@ -109,7 +143,7 @@ private:
             !scene ||
             scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
             !scene->mRootNode
-        )
+            )
         {
             cout
                 << "ERROR::ASSIMP:: "
@@ -331,7 +365,7 @@ private:
                 GLuint j = 0;
                 j < face.mNumIndices;
                 j++
-            )
+                )
             {
                 indices.push_back(
                     face.mIndices[j]
@@ -397,7 +431,7 @@ private:
                     AI_MATKEY_COLOR_DIFFUSE,
                     color
                 ) == AI_SUCCESS
-            )
+                )
             {
                 diffuseColor =
                     glm::vec3(
@@ -509,7 +543,7 @@ private:
             GLuint i = 0;
             i < mat->GetTextureCount(type);
             i++
-        )
+            )
         {
             aiString str;
 
@@ -529,12 +563,12 @@ private:
                 GLuint j = 0;
                 j < textures_loaded.size();
                 j++
-            )
+                )
             {
                 if (
                     textures_loaded[j].path
                     == str
-                )
+                    )
                 {
                     textures.push_back(
                         textures_loaded[j]
@@ -560,6 +594,20 @@ private:
                         str.C_Str(),
                         this->directory
                     );
+
+
+                /*
+                Si TextureFromFile falló (id == 0), no la
+                metemos al caché ni a la lista de texturas de
+                este mesh: así el material simplemente se
+                dibuja con su color Kd (materialDiffuse) en
+                vez de con una textura rota, sin tronar el
+                programa.
+                */
+                if (texture.id == 0)
+                {
+                    continue;
+                }
 
 
                 texture.type =
@@ -595,7 +643,7 @@ private:
 
 /*
 ====================================================================
-TEXTURE FROM FILE
+TEXTURE FROM FILE (stb_image)
 ====================================================================
 */
 
@@ -618,7 +666,7 @@ GLint TextureFromFile(
     if (
         filename.length() > 1 &&
         filename[1] == ':'
-    )
+        )
     {
         // Already absolute Windows path.
     }
@@ -649,18 +697,27 @@ GLint TextureFromFile(
 
 
     /*
-    Load image.
+    Load image with stb_image.
+
+    A diferencia de SOIL_load_image (que aquí siempre se
+    forzaba a SOIL_LOAD_RGB), pedimos a stbi_load que nos
+    diga cuántos canales tiene realmente la imagen (1, 3 o 4)
+    para elegir el formato de OpenGL correcto, y así también
+    soportar texturas con canal alfa (tu shader ya revisa
+    texColor.a para hacer discard).
     */
-    int width;
-    int height;
+
+    int width = 0;
+    int height = 0;
+    int channels = 0;
 
     unsigned char* image =
-        SOIL_load_image(
+        stbi_load(
             filename.c_str(),
             &width,
             &height,
-            0,
-            SOIL_LOAD_RGB
+            &channels,
+            0
         );
 
 
@@ -672,6 +729,8 @@ GLint TextureFromFile(
         cout
             << "ERROR::TEXTURE::FAILED_TO_LOAD "
             << filename
+            << " | stbi reason: "
+            << stbi_failure_reason()
             << endl;
 
         glDeleteTextures(
@@ -680,6 +739,25 @@ GLint TextureFromFile(
         );
 
         return 0;
+    }
+
+
+    /*
+    Elegir formato según el número real de canales.
+    */
+    GLenum format = GL_RGB;
+
+    if (channels == 1)
+    {
+        format = GL_RED;
+    }
+    else if (channels == 3)
+    {
+        format = GL_RGB;
+    }
+    else if (channels == 4)
+    {
+        format = GL_RGBA;
     }
 
 
@@ -693,16 +771,27 @@ GLint TextureFromFile(
 
 
     /*
+    Filas de la imagen alineadas a 1 byte, por si el ancho
+    no es múltiplo de 4 (evita texturas "inclinadas"/corridas
+    con ciertos anchos impares).
+    */
+    glPixelStorei(
+        GL_UNPACK_ALIGNMENT,
+        1
+    );
+
+
+    /*
     Upload image.
     */
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
-        GL_RGB,
+        format,
         width,
         height,
         0,
-        GL_RGB,
+        format,
         GL_UNSIGNED_BYTE,
         image
     );
@@ -756,7 +845,7 @@ GLint TextureFromFile(
         0
     );
 
-    SOIL_free_image_data(
+    stbi_image_free(
         image
     );
 
