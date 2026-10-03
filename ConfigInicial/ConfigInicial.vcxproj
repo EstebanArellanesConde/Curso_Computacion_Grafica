@@ -34,7 +34,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{1499de4a-c7f3-41f6-83dd-804b389938a7}</ProjectGuid>
+    <ProjectGuid>{22B21E76-3E48-43F4-946E-2CEFD479994A}</ProjectGuid>
     <RootNamespace>ConfigInicial</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -85,15 +85,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(SolutionDir)External Libraries\glm;$(IncludePath)</IncludePath>
+    <LibraryWPath>$(WindowsSDK_MetadataPath);</LibraryWPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(SolutionDir)External Libraries\glm;$(IncludePath)</IncludePath>
+    <LibraryWPath>$(WindowsSDK_MetadataPath);</LibraryWPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir)External Libraries\glm;$(IncludePath)</IncludePath>
+    <LibraryWPath>$(WindowsSDK_MetadataPath);</LibraryWPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)External Libraries\glm;$(IncludePath)</IncludePath>
+    <LibraryWPath>$(WindowsSDK_MetadataPath);</LibraryWPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -102,12 +106,12 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)External Libraries/GLEW/include;$(SolutionDir)External Libraries/glm;$(SolutionDir)External Libraries/GLFW/include;$(SolutionDir)/External Libraries/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External Libraries\GLEW\include;$(SolutionDir)External Libraries\GLFW\include;$(SolutionDir)External Libraries\glm;$(SolutionDir)External Libraries\assimp\include;$(SolutionDir)/External Libraries/GLEW/include;$(SolutionDir)External Libraries/GLFW/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLFW/lib-vc2015;$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/SOIL2/lib;$(SolutionDir)/External Libraries/assimp/lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\est3b\Desktop\ConfigInicial\External Libraries\GLEW\lib\Release\Win32;$(ProjectDir)External Libraries\GLFW\lib-vc2015;$(SolutionDir)External Libraries\SOIL2\lib;$(SolutionDir)External Libraries\assimp\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;assimp-vc140-mt.lib;soil2-debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -123,12 +127,12 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)External Libraries/GLEW/include;$(SolutionDir)External Libraries/glm;$(SolutionDir)External Libraries/GLFW/include;$(SolutionDir)/External Libraries/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External Libraries\GLEW\include;$(SolutionDir)External Libraries\GLFW\include;$(SolutionDir)External Libraries\glm;$(SolutionDir)External Libraries\assimp\include;$(SolutionDir)/External Libraries/GLEW/include;$(SolutionDir)External Libraries/GLFW/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLFW/lib-vc2015;$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/SOIL2/lib;$(SolutionDir)/External Libraries/assimp/lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\est3b\Desktop\ConfigInicial\External Libraries\GLEW\lib\Release\Win32;$(ProjectDir)External Libraries\GLFW\lib-vc2015;$(SolutionDir)External Libraries\SOIL2\lib;$(SolutionDir)External Libraries\assimp\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;assimp-vc140-mt.lib;soil2-debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -142,12 +146,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)External Libraries/GLEW/include;$(SolutionDir)External Libraries/glm;$(SolutionDir)External Libraries/GLFW/include;$(SolutionDir)/External Libraries/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External Libraries\GLEW\include;$(SolutionDir)External Libraries\GLFW\include;$(SolutionDir)External Libraries\glm;$(SolutionDir)External Libraries\assimp\include;$(SolutionDir)External Libraries/GLEW/include;$(SolutionDir)External Libraries/GLFW/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLFW/lib-vc2015;$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/SOIL2/lib;$(SolutionDir)/External Libraries/assimp/lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\est3b\Desktop\ConfigInicial\External Libraries\GLEW\lib\Release\Win32;$(ProjectDir)External Libraries\GLFW\lib-vc2015;$(SolutionDir)External Libraries\SOIL2\lib;$(SolutionDir)External Libraries\assimp\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;assimp-vc140-mt.lib;soil2-debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -163,12 +167,12 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)External Libraries/GLEW/include;$(SolutionDir)External Libraries/glm;$(SolutionDir)External Libraries/GLFW/include;$(SolutionDir)/External Libraries/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External Libraries\GLEW\include;$(SolutionDir)External Libraries\GLFW\include;$(SolutionDir)External Libraries\glm;$(SolutionDir)External Libraries\assimp\include;$(SolutionDir)External Libraries/GLEW/include;$(SolutionDir)External Libraries/GLFW/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/External Libraries/GLFW/lib-vc2015;$(SolutionDir)/External Libraries/GLEW/lib/Release/Win32;$(SolutionDir)/External Libraries/SOIL2/lib;$(SolutionDir)/External Libraries/assimp/lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\est3b\Desktop\ConfigInicial\External Libraries\GLEW\lib\Release\Win32;$(ProjectDir)External Libraries\GLFW\lib-vc2015;$(SolutionDir)External Libraries\SOIL2\lib;$(SolutionDir)External Libraries\assimp\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;assimp-vc140-mt.lib;soil2-debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
