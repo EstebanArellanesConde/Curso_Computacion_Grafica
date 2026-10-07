@@ -1,6 +1,6 @@
 /*
     Autor: Arellanes Conde Esteban
-    Practica #07
+    Practica #08
     CGeIHC (L+) - Grupo: 05
     FI UNAM Grupo1
     #cta: 319322743
