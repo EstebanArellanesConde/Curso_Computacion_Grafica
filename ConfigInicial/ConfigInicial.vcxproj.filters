@@ -26,10 +26,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shader\modelLoading.frag">
+    <None Include="Shader\core.frag">
       <Filter>Archivos de origen\Shader</Filter>
     </None>
-    <None Include="Shader\modelLoading.vs">
+    <None Include="Shader\core.vs">
       <Filter>Archivos de origen\Shader</Filter>
     </None>
     <None Include="Shader\lamp.frag">
@@ -38,9 +38,27 @@
     <None Include="Shader\lamp.vs">
       <Filter>Archivos de origen\Shader</Filter>
     </None>
+    <None Include="Shader\lighting.frag">
+      <Filter>Archivos de origen\Shader</Filter>
+    </None>
+    <None Include="Shader\lighting.vs">
+      <Filter>Archivos de origen\Shader</Filter>
+    </None>
+    <None Include="Shader\modelLoading.frag">
+      <Filter>Archivos de origen\Shader</Filter>
+    </None>
+    <None Include="Shader\modelLoading.vs">
+      <Filter>Archivos de origen\Shader</Filter>
+    </None>
+    <None Include="Shader\scene.frag">
+      <Filter>Archivos de origen\Shader</Filter>
+    </None>
+    <None Include="Shader\scene.vs">
+      <Filter>Archivos de origen\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Texturizado.cpp">
+    <ClCompile Include="Iluminacion_escenario_dia-noche.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
   </ItemGroup>
