@@ -19,7 +19,10 @@ uniform Light moon;
 uniform vec3 ambientColor;
 uniform vec3 viewPos;
 
+// Los fija Model.h por cada malla (igual que en modelLoading.frag)
 uniform sampler2D texture_diffuse1;
+uniform bool  hasTexture;
+uniform vec3  materialDiffuse;   // Kd del .mtl cuando no hay textura
 
 vec3 CalcLight(Light light, vec3 N, vec3 V, vec3 albedo)
 {
@@ -32,7 +35,6 @@ vec3 CalcLight(Light light, vec3 N, vec3 V, vec3 albedo)
     vec3  H    = normalize(L + V);
     float spec = pow(max(dot(N, H), 0.0), 32.0);
 
-    // Atenuacion (luces lejanas, rango ~ 50-60 unidades)
     float d   = length(light.position - FragPos);
     float att = 1.0 / (1.0 + 0.007 * d + 0.0002 * d * d);
 
@@ -41,11 +43,20 @@ vec3 CalcLight(Light light, vec3 N, vec3 V, vec3 albedo)
 
 void main()
 {
-    vec4 tex = texture(texture_diffuse1, TexCoords);
-    if (tex.a < 0.1)
-        discard;
+    vec3 albedo;
 
-    vec3 albedo = tex.rgb;
+    if (hasTexture)
+    {
+        vec4 tex = texture(texture_diffuse1, TexCoords);
+        if (tex.a < 0.05)
+            discard;
+        albedo = tex.rgb;
+    }
+    else
+    {
+        albedo = materialDiffuse;
+    }
+
     vec3 N = normalize(Normal);
     vec3 V = normalize(viewPos - FragPos);
 

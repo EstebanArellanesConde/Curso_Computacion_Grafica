@@ -50,9 +50,15 @@
     <None Include="Shader\modelLoading.vs">
       <Filter>Archivos de origen\Shader</Filter>
     </None>
+    <None Include="Shader\scene.frag">
+      <Filter>Archivos de origen\Shader</Filter>
+    </None>
+    <None Include="Shader\scene.vs">
+      <Filter>Archivos de origen\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Iluminacion.cpp">
+    <ClCompile Include="Iluminacion_escenario_dia-noche.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
   </ItemGroup>
