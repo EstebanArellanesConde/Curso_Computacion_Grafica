@@ -91,6 +91,38 @@ public:
 
 
     /*
+    Draw only the opaque meshes (opacity >= 1.0).
+    Call this first, with blending disabled.
+    */
+    void DrawOpaque(Shader shader)
+    {
+        for (GLuint i = 0; i < this->meshes.size(); i++)
+        {
+            if (this->meshes[i].opacity >= 1.0f)
+            {
+                this->meshes[i].Draw(shader);
+            }
+        }
+    }
+
+
+    /*
+    Draw only the transparent meshes (opacity < 1.0).
+    Call this last, with blending enabled.
+    */
+    void DrawTransparent(Shader shader)
+    {
+        for (GLuint i = 0; i < this->meshes.size(); i++)
+        {
+            if (this->meshes[i].opacity < 1.0f)
+            {
+                this->meshes[i].Draw(shader);
+            }
+        }
+    }
+
+
+    /*
     Meshes belonging to the model.
 
     Público para poder recorrer sus vértices desde main.cpp
@@ -265,6 +297,11 @@ private:
             1.0f,
             1.0f
         );
+
+        /*
+        Default opacity (opaque).
+        */
+        float opacity = 1.0f;
 
 
         /*
@@ -444,6 +481,27 @@ private:
 
             /*
             --------------------------------------------------------
+            OPACITY (d)
+
+            Example:  d 0.3  ->  opacity = 0.3
+            --------------------------------------------------------
+            */
+
+            float d = 1.0f;
+
+            if (
+                material->Get(
+                    AI_MATKEY_OPACITY,
+                    d
+                ) == AI_SUCCESS
+                )
+            {
+                opacity = d;
+            }
+
+
+            /*
+            --------------------------------------------------------
             DEBUG INFORMATION
             --------------------------------------------------------
             */
@@ -457,6 +515,8 @@ private:
                 << diffuseColor.g
                 << ", "
                 << diffuseColor.b
+                << " | d: "
+                << opacity
                 << endl;
 
 
@@ -516,7 +576,8 @@ private:
             vertices,
             indices,
             textures,
-            diffuseColor
+            diffuseColor,
+            opacity
         );
     }
 

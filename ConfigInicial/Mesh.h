@@ -50,6 +50,9 @@ public:
     // Diffuse material color obtained from the .mtl file (Kd)
     glm::vec3 diffuseColor;
 
+    // Opacity obtained from the .mtl file (d). 1.0 = opaque, 0.0 = invisible
+    float opacity;
+
     /* Functions */
 
     // Constructor
@@ -57,13 +60,15 @@ public:
         vector<Vertex> vertices,
         vector<GLuint> indices,
         vector<Texture> textures,
-        glm::vec3 diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f)
+        glm::vec3 diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f),
+        float opacity = 1.0f
     )
     {
         this->vertices = vertices;
         this->indices = indices;
         this->textures = textures;
         this->diffuseColor = diffuseColor;
+        this->opacity = opacity;
 
         // Initialize buffers
         this->setupMesh();
@@ -166,6 +171,23 @@ public:
                 diffuseColorLocation,
                 1,
                 glm::value_ptr(this->diffuseColor)
+            );
+        }
+
+        /*
+        Send the opacity (d) from the .mtl file.
+        */
+        GLint opacityLocation =
+            glGetUniformLocation(
+                shader.Program,
+                "opacity"
+            );
+
+        if (opacityLocation != -1)
+        {
+            glUniform1f(
+                opacityLocation,
+                this->opacity
             );
         }
 
