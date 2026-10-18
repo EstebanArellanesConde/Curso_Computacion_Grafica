@@ -46,7 +46,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Iluminacion_escenario_fuentes_iluminacion.cpp">
+    <ClCompile Include="Animación_Básica.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
   </ItemGroup>

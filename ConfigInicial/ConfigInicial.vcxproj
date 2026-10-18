@@ -31,7 +31,7 @@
     <None Include="Shader\modelLoading.vs" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Iluminacion_escenario_fuentes_iluminacion.cpp" />
+    <ClCompile Include="Animación_Básica.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
