@@ -33,8 +33,8 @@
 #include "Model.h"
 
 // Function prototypes
-void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode);
-void MouseCallback(GLFWwindow *window, double xPos, double yPos);
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void MouseCallback(GLFWwindow* window, double xPos, double yPos);
 void DoMovement();
 void Animation();
 
@@ -110,16 +110,42 @@ glm::vec3 Light1 = glm::vec3(0);
 //Anim
 float rotBall = 0.0f;
 bool AnimBall = false;
-bool AnimDog = false;
-float rotDog = 0.0f;
 int dogAnim = 0;
 float FLegs = 0.0f;
 float RLegs = 0.0f;
 float head = 0.0f;
 float tail = 0.0f;
-glm::vec3 dogPos (0.0f,0.0f,0.0f);
+glm::vec3 dogPos(0.0f, 0.0f, 0.0f);
 float dogRot = 0.0f;
 bool step = false;
+
+// Parámetros del recorrido del perro
+float dogSpeed = 0.0015f;     // unidades por frame al caminar
+float dogTurnSpeed = 0.5f;   // grados por frame al girar (promedio)
+
+// --- Límites del recorrido respecto al borde del piso ---
+// IMPORTANTE: ajusta FLOOR_HALF_X / FLOOR_HALF_Z a la mitad del ancho/largo
+// real de piso.obj (valor máximo de |x| y |z| entre sus líneas "v").
+const float FLOOR_HALF_X = 2.5f;
+const float FLOOR_HALF_Z = 2.5f;
+const float EDGE_MARGIN = 0.3f;   // distancia que se deja al borde
+const float PATH_X = FLOOR_HALF_X - EDGE_MARGIN;
+const float PATH_Z = FLOOR_HALF_Z - EDGE_MARGIN;
+
+// --- Giro suave: el cuerpo "anticipa" la vuelta ---
+float bodyYaw = 0.0f;        // el torso se adelanta un poco
+float headYaw = 0.0f;        // la cabeza mira hacia donde va a girar
+float frontLegYaw = 0.0f;    // patas delanteras se orientan levemente
+float rearLegYaw = 0.0f;     // patas traseras, aún más leve
+const float MAX_BODY_YAW = 8.0f;
+const float MAX_HEAD_YAW = 30.0f;
+const float MAX_FLEG_YAW = 12.0f;
+const float MAX_RLEG_YAW = 5.0f;
+const float LEAD_SPEED = 0.015f;  // velocidad de la anticipación (1/frames)
+int turnPhase = 0;           // 0 = sin iniciar, 1 = anticipación, 2 = giro
+float turnStart = 0.0f;
+float turnLead = 0.0f;
+float turnT = 0.0f;
 
 
 
@@ -176,7 +202,7 @@ int main()
 
 	Shader lightingShader("Shader/lighting.vs", "Shader/lighting.frag");
 	Shader lampShader("Shader/lamp.vs", "Shader/lamp.frag");
-	
+
 	//models
 	Model DogBody((char*)"Models/DogBody.obj");
 	Model HeadDog((char*)"Models/HeadDog.obj");
@@ -228,19 +254,19 @@ int main()
 		// Clear the colorbuffer
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	   
+
 		// OpenGL options
 		glEnable(GL_DEPTH_TEST);
 
-		
+
 		glm::mat4 modelTemp = glm::mat4(1.0f); //Temp
-		
-	
+
+
 
 		// Use cooresponding shader when setting uniforms/drawing objects
 		lightingShader.Use();
 
-        glUniform1i(glGetUniformLocation(lightingShader.Program, "diffuse"), 0);
+		glUniform1i(glGetUniformLocation(lightingShader.Program, "diffuse"), 0);
 		//glUniform1i(glGetUniformLocation(lightingShader.Program, "specular"),1);
 
 		GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
@@ -249,25 +275,25 @@ int main()
 
 		// Directional light
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.ambient"),0.6f,0.6f,0.6f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.ambient"), 0.6f, 0.6f, 0.6f);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.diffuse"), 0.6f, 0.6f, 0.6f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.specular"),0.3f, 0.3f, 0.3f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.specular"), 0.3f, 0.3f, 0.3f);
 
 
 		// Point light 1
-	    glm::vec3 lightColor;
-		lightColor.x= abs(sin(glfwGetTime() *Light1.x));
-		lightColor.y= abs(sin(glfwGetTime() *Light1.y));
-		lightColor.z= sin(glfwGetTime() *Light1.z);
+		glm::vec3 lightColor;
+		lightColor.x = abs(sin(glfwGetTime() * Light1.x));
+		lightColor.y = abs(sin(glfwGetTime() * Light1.y));
+		lightColor.z = sin(glfwGetTime() * Light1.z);
 
-		
+
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].ambient"), lightColor.x,lightColor.y, lightColor.z);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].diffuse"), lightColor.x,lightColor.y,lightColor.z);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].ambient"), lightColor.x, lightColor.y, lightColor.z);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].diffuse"), lightColor.x, lightColor.y, lightColor.z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].specular"), 1.0f, 0.2f, 0.2f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].constant"), 1.0f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].linear"), 0.045f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].quadratic"),0.075f);
+		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].quadratic"), 0.075f);
 
 
 		// SpotLight
@@ -281,7 +307,7 @@ int main()
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.quadratic"), 0.7f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.cutOff"), glm::cos(glm::radians(12.0f)));
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
-		
+
 
 		// Set material properties
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 5.0f);
@@ -302,10 +328,10 @@ int main()
 
 		glm::mat4 model(1);
 
-	
-		
+
+
 		//Carga de modelo 
-        view = camera.GetViewMatrix();	
+		view = camera.GetViewMatrix();
 		model = glm::mat4(1);
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		Piso.Draw(lightingShader);
@@ -314,46 +340,51 @@ int main()
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
 		//Body
-		modelTemp= model = glm::translate(model, dogPos);
-		modelTemp= model = glm::rotate(model, glm::radians(dogRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelTemp = model = glm::translate(model, dogPos);
+		modelTemp = model = glm::rotate(model, glm::radians(dogRot + bodyYaw), glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		DogBody.Draw(lightingShader);
 		//Head
 		model = modelTemp;
 		model = glm::translate(model, glm::vec3(0.0f, 0.093f, 0.208f));
+		model = glm::rotate(model, glm::radians(headYaw), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(head), glm::vec3(0.0f, 0.0f, 1.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		HeadDog.Draw(lightingShader);
 		//Tail 
 		model = modelTemp;
 		model = glm::translate(model, glm::vec3(0.0f, 0.026f, -0.288f));
-		model = glm::rotate(model, glm::radians(tail), glm::vec3(0.0f, 0.0f, -1.0f)); 
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); 
+		model = glm::rotate(model, glm::radians(tail), glm::vec3(0.0f, 0.0f, -1.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		DogTail.Draw(lightingShader);
 		//Front Left Leg
 		model = modelTemp;
 		model = glm::translate(model, glm::vec3(0.112f, -0.044f, 0.074f));
-		model = glm::rotate(model, glm::radians(FLegs), glm::vec3(-1.0f, 0.0f, 0.0f)); 
+		model = glm::rotate(model, glm::radians(frontLegYaw), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(FLegs), glm::vec3(-1.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		F_LeftLeg.Draw(lightingShader);
 		//Front Right Leg
-		model = modelTemp; 
+		model = modelTemp;
 		model = glm::translate(model, glm::vec3(-0.111f, -0.055f, 0.074f));
+		model = glm::rotate(model, glm::radians(frontLegYaw), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(FLegs), glm::vec3(1.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		F_RightLeg.Draw(lightingShader);
 		//Back Left Leg
-		model = modelTemp; 
-		model = glm::translate(model, glm::vec3(0.082f, -0.046, -0.218)); 
-		model = glm::rotate(model, glm::radians(RLegs), glm::vec3(1.0f, 0.0f, 0.0f)); 
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); 
+		model = modelTemp;
+		model = glm::translate(model, glm::vec3(0.082f, -0.046, -0.218));
+		model = glm::rotate(model, glm::radians(rearLegYaw), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(RLegs), glm::vec3(1.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		B_LeftLeg.Draw(lightingShader);
 		//Back Right Leg
-		model = modelTemp; 
+		model = modelTemp;
 		model = glm::translate(model, glm::vec3(-0.083f, -0.057f, -0.231f));
+		model = glm::rotate(model, glm::radians(rearLegYaw), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(RLegs), glm::vec3(-1.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		B_RightLeg.Draw(lightingShader); 
+		B_RightLeg.Draw(lightingShader);
 
 
 		model = glm::mat4(1);
@@ -363,10 +394,10 @@ int main()
 		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 1);
 		model = glm::rotate(model, glm::radians(rotBall), glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-	    Ball.Draw(lightingShader); 
+		Ball.Draw(lightingShader);
 		glDisable(GL_BLEND);  //Desactiva el canal alfa 
 		glBindVertexArray(0);
-	
+
 
 		// Also draw the lamp object, again binding the appropriate shader
 		lampShader.Use();
@@ -383,14 +414,14 @@ int main()
 		model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		// Draw the light object (using light's vertex attributes)
-		
-			model = glm::mat4(1);
-			model = glm::translate(model, pointLightPositions[0]);
-			model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-			glBindVertexArray(VAO);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		
+
+		model = glm::mat4(1);
+		model = glm::translate(model, pointLightPositions[0]);
+		model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
 		glBindVertexArray(0);
 
 
@@ -466,11 +497,11 @@ void DoMovement()
 	{
 		pointLightPositions[0].z += 0.01f;
 	}
-	
+
 }
 
 // Is called whenever a key is pressed/released via GLFW
-void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode)
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
 	if (GLFW_KEY_ESCAPE == key && GLFW_PRESS == action)
 	{
@@ -495,7 +526,7 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode
 		if (active)
 		{
 			Light1 = glm::vec3(0.2f, 0.8f, 1.0f);
-			
+
 		}
 		else
 		{
@@ -505,58 +536,151 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode
 	if (keys[GLFW_KEY_N])
 	{
 		AnimBall = !AnimBall;
-		
-	}
-	if (keys[GLFW_KEY_B])
-	{
-		dogAnim = 1;
 
 	}
+	// Inicia el recorrido solo si el perro está en reposo
+	if (keys[GLFW_KEY_B] && dogAnim == 0)
+	{
+		dogAnim = 1;
+	}
 }
+
+// ---------------------------------------------------------------
+// Funciones auxiliares de la animación del perro
+// ---------------------------------------------------------------
+
+// Ciclo de patas, cabeza y cola
+void WalkCycle()
+{
+	if (!step)
+	{
+		RLegs += 0.3f;
+		FLegs += 0.3f;
+		head += 0.3f;
+		tail += 0.3f;
+		if (RLegs > 15.0f) step = true;
+	}
+	else
+	{
+		RLegs -= 0.3f;
+		FLegs -= 0.3f;
+		head -= 0.3f;
+		tail -= 0.3f;
+		if (RLegs < -15.0f) step = false;
+	}
+}
+
+// Camina sobre un eje hasta llegar al destino. Devuelve true al llegar.
+bool WalkAxis(float& axis, float target)
+{
+	WalkCycle();
+	float d = target - axis;
+	if (fabs(d) <= dogSpeed)
+	{
+		axis = target;   // ajuste exacto para no acumular error
+		return true;
+	}
+	axis += (d > 0 ? 1.0f : -1.0f) * dogSpeed;
+	return false;
+}
+
+float Smooth(float t)
+{
+	return t * t * (3.0f - 2.0f * t);   // suavizado (ease in/out)
+}
+
+// Aplica la "anticipación" (0 = nada, 1 = máxima) hacia el lado del giro
+void ApplyLead(float lead, float sign)
+{
+	float k = Smooth(lead) * sign;
+	headYaw = MAX_HEAD_YAW * k;
+	bodyYaw = MAX_BODY_YAW * k;
+	frontLegYaw = MAX_FLEG_YAW * k;
+	rearLegYaw = MAX_RLEG_YAW * k;
+}
+
+// Giro suave en dos fases. Devuelve true al terminar.
+//  Fase 1: la cabeza se orienta primero, luego torso y patas se inclinan levemente.
+//  Fase 2: el cuerpo gira con aceleración/frenado suave mientras la cabeza,
+//          el torso y las patas se alinean de nuevo con el cuerpo.
+bool TurnTo(float target)
+{
+	if (turnPhase == 0)
+	{
+		turnStart = dogRot;
+		turnLead = 0.0f;
+		turnT = 0.0f;
+		turnPhase = 1;
+	}
+
+	float total = target - turnStart;
+	float sign = (total > 0.0f) ? 1.0f : -1.0f;
+
+	if (turnPhase == 1)   // anticipación
+	{
+		turnLead += LEAD_SPEED;
+		if (turnLead >= 1.0f)
+		{
+			turnLead = 1.0f;
+			turnPhase = 2;
+		}
+		ApplyLead(turnLead, sign);
+		return false;
+	}
+
+	// Fase 2: giro del cuerpo
+	WalkCycle();   // las patas dan pasitos mientras gira
+	turnT += dogTurnSpeed / fabs(total);
+	if (turnT >= 1.0f)
+	{
+		dogRot = target;
+		ApplyLead(0.0f, sign);
+		turnPhase = 0;
+		return true;
+	}
+	dogRot = turnStart + total * Smooth(turnT);
+	ApplyLead(1.0f - turnT, sign);
+	return false;
+}
+
+// ---------------------------------------------------------------
+// Máquina de estados
+// Recorrido: i -> A -> B -> C -> D -> E -> i
+// ---------------------------------------------------------------
 void Animation() {
 	if (AnimBall)
 	{
 		rotBall += 0.4f;
 	}
 
-	if (AnimDog)
+	switch (dogAnim)
 	{
-		rotDog -= 0.6f;
-	}
+	case 0: break; // Reposo
 
-	if (dogAnim == 1) // Walk Animation
-	{
-		// Condición de límite: Detener antes de terminar el piso
-		// Ajusta el '2.0f' según el tamaño real de tu modelo piso.obj
-		if (dogPos.z >= 2.4f)
+	case 1:  if (WalkAxis(dogPos.z, PATH_Z))  dogAnim = 2;  break; // i -> A
+	case 2:  if (TurnTo(90.0f))             dogAnim = 3;  break; // girar hacia B
+	case 3:  if (WalkAxis(dogPos.x, PATH_X))  dogAnim = 4;  break; // A -> B
+	case 4:  if (TurnTo(180.0f))            dogAnim = 5;  break; // girar hacia C
+	case 5:  if (WalkAxis(dogPos.z, -PATH_Z)) dogAnim = 6;  break; // B -> C
+	case 6:  if (TurnTo(270.0f))            dogAnim = 7;  break; // girar hacia D
+	case 7:  if (WalkAxis(dogPos.x, -PATH_X)) dogAnim = 8;  break; // C -> D
+	case 8:  if (TurnTo(360.0f))            dogAnim = 9;  break; // girar hacia E
+	case 9:  if (WalkAxis(dogPos.z, 0.0f))  dogAnim = 10; break; // D -> E
+	case 10: if (TurnTo(450.0f))            dogAnim = 11; break; // girar hacia i
+	case 11: if (WalkAxis(dogPos.x, 0.0f))  dogAnim = 12; break; // E -> i
+	case 12: // girar a la orientación inicial y terminar
+		if (TurnTo(360.0f))
 		{
-			dogAnim = 0; // Detiene la animación justo antes del borde
+			dogRot = 0.0f;
+			RLegs = FLegs = head = tail = 0.0f;
+			step = false;
+			dogAnim = 0;
 		}
-		else
-		{
-			if (!step)
-			{
-				RLegs += 0.3f;
-				FLegs += 0.3f;
-				head += 0.3f;
-				tail += 0.3f;
-				if (RLegs > 15.0f) step = true;
-			}
-			else
-			{
-				RLegs -= 0.3f;
-				FLegs -= 0.3f;
-				head -= 0.3f;
-				tail -= 0.3f;
-				if (RLegs < -15.0f) step = false;
-			}
-
-			dogPos.z += 0.001f;
-		}
+		break;
 	}
 }
 
-void MouseCallback(GLFWwindow *window, double xPos, double yPos)
+void MouseCallback(GLFWwindow* window, double xPos, double yPos)
 {
 	if (firstMouse)
 	{
