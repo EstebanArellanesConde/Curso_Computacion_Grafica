@@ -125,7 +125,7 @@ const float TURN_BODY_TIME_MIN = 0.9f;
 const float TURN_BODY_TIME_MAX = 2.8f;
 
 // --- Límites del recorrido respecto al borde del piso ---
-// IMPORTANTE: ajusta FLOOR_HALF_X / FLOOR_HALF_Z a la mitad del ancho/largo
+// IMPORTANTE: Ajustar FLOOR_HALF_X / FLOOR_HALF_Z a la mitad del ancho/largo
 // real de piso.obj (valor máximo de |x| y |z| entre sus líneas "v").
 const float FLOOR_HALF_X = 2.5f;
 const float FLOOR_HALF_Z = 2.5f;
